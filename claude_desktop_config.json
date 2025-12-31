@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "pizza-ordering": {
+      "command": "/opt/homebrew/anaconda3/envs/pizza-ai/bin/python3",
+      "args": [
+        "/Users/shubhamdwivedi/Downloads/ALL_PROJECTS/Pizza Agent/Pizza-AI-A2A-MCP-/app/mcp/pizza_mcp_server.py"
+      ]
+    }
+  }
+}
