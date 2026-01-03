@@ -100,3 +100,27 @@ _You would only build your own MCP host/client if you required a custom agent ru
     `python3 app/mcp/pizza_mcp_server.py`
 3.  Order Pizza:  
     Ask Claude: "What's on the menu and can I get a large pepperoni?"
+
+
+
+
+## Architecture that we want to build (now)
+
+```
+┌──────────────────────────┐
+│      A2A Orchestrator    │   ← Agent #0 (Coordinator)
+│   (reasoning + routing)  │
+└───────────┬──────────────┘
+            │
+   ┌────────┴─────────┐
+   │                  │
+┌──▼──────────┐  ┌────▼──────────┐
+│ Pizza Agent │  │ Delivery Agent│
+│ (Ordering)  │  │ (Scheduling)  │
+└────┬────────┘  └────┬──────────┘
+     │                 │
+┌────▼───────┐  ┌─────▼─────────┐
+│ Pizza MCP  │  │ Delivery MCP  │
+│ (FastAPI)  │  │ (Time logic)  │
+└────────────┘  └───────────────┘
+```
