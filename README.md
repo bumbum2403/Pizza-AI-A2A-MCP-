@@ -1,134 +1,102 @@
-You’ve built a local, agent-ready pizza ordering backend, exposed via FastAPI, and wrapped it into an MCP server that Claude Desktop can directly reason over and invoke.
+# Pizza-Agent: Local MCP-Powered Pizza Ordering System
 
-This is not a demo toy anymore — it’s a real agent-compatible system.
+This is a local, agent-ready pizza ordering backend, exposed via FastAPI, and wrapped it into an MCP server that Claude Desktop can directly reason over and invoke.
+It’s a real **agent-compatible system**.
 
-🧩 High-level Architecture
-Claude Desktop (MCP Host + Client)
-        │
-        │  MCP (stdio)
-        ▼
-Pizza Ordering MCP Server (FastMCP)
-        │
-        │  HTTP (httpx)
-        ▼
-FastAPI Local API (OpenAPI)
-        │
-        ▼
-In-memory state (menu, orders)
+##  High-level Architecture
 
-1️⃣ What does the local API expose? How does it do that?
-🔌 What it exposes
-
-Your local FastAPI server exposes:
-
-Menu APIs
-
-GET /menu
-
-Returns the pizza menu
-
-Backed by an in-memory dictionary
-
-Read-only, deterministic
-
-Order APIs
-
-POST /orders
-
-Creates a new pizza order
-
-Accepts pizza ID, size, quantity
-
-Generates an order ID
-
-Stores order in memory
-
-⚙️ How it exposes this
-
-FastAPI:
-
-Uses Python type hints + Pydantic models
-
-Automatically generates:
-
-Request validation
-
-Response schemas
-
-OpenAPI (Swagger) spec
-
-When you run:
-
-uvicorn app.main:app --reload
+The flow of communication moves from the user interface down to the local state, using the Model Context Protocol (MCP) as the bridge between the LLM and our API code.
 
 
-FastAPI:
+```
 
-Spins up an HTTP server
+Claude Desktop (MCP Host + Client)  
+│  
+│ MCP (stdio)  
+▼  
+Pizza Ordering MCP Server (FastMCP)  
+│  
+│ HTTP (httpx)  
+▼  
+FastAPI Local API (OpenAPI)  
+│  
+▼  
+In-memory state (menu, orders)  
 
-Publishes /openapi.json
+```
 
-Makes your backend machine-discoverable
+## 1️⃣ The Local API: Structure & Exposure
 
-💡 This OpenAPI spec is the contract that MCP consumes.
+The backend is built with FastAPI to ensure it is robust, typed, and machine-discoverable.
 
-2️⃣ FastAPI → OpenAPI → MCP
-Who is the host? Who is the client?
+###  What it exposes
 
-This is the most important conceptual clarity — and you already reasoned it correctly.
+The local FastAPI server exposes two primary resource sets:
 
-🧠 Key idea
+*   **Menu APIs**
+    *   GET /menu: Returns the pizza menu.
+    *   _Implementation:_ Backed by an in-memory dictionary. Read-only and deterministic.
+*   **Order APIs**
+    *   POST /orders: Creates a new pizza order.
+    *   _Inputs:_ Accepts pizza ID, size, and quantity.
+    *   _Output:_ Generates a unique order ID and stores the order in memory.
 
-You did NOT build a custom MCP client.
-You let Claude Desktop act as both the MCP host and MCP client.
+###  How it works
 
-🧱 What you did
+By using **FastAPI**, the system leverages:
 
-FastAPI produces OpenAPI
+1.  **Python Type Hints + Pydantic:** For automatic request validation and response schemas.
+2.  **OpenAPI (Swagger) Generation:** FastAPI automatically publishes an /openapi.json file.
+3.  **Uvicorn:** To spin up the HTTP server.
 
-FastMCP reads that OpenAPI
+\[!IMPORTANT\]
 
-FastMCP:
+This OpenAPI spec is the "contract" that the MCP server consumes to understand how to interact with your code.
+We convert the MCP server directly using the OpenAPI specs
 
-Auto-generates MCP tools/resources
+##  Conceptual Map: FastAPI → OpenAPI → MCP
 
-Runs as an MCP server over stdio
+Understanding the roles of the host and client is critical to understanding how Claude interacts with your tools.
 
-Claude Desktop:
+### The Key Idea
 
-Launches the MCP server
+We did **not** build a custom MCP client. Instead, we allowed **Claude Desktop** to act as both the MCP host and the MCP client.
 
-Acts as the host
+### Implementation Roles
 
-Internally instantiates the client
+| Role | Entity |
+| --- | --- |
+| MCP Server | pizza_mcp_server.py (via FastMCP) |
+| MCP Client | Claude Desktop (Internal) |
+| MCP Host | Claude Desktop |
+| API Client (HTTP) | httpx.AsyncClient (inside the MCP server) |
 
-So right now:
+### 🛠️ The Integration Workflow
 
-Role	Who plays it
-MCP Server	pizza_mcp_server.py
-MCP Client	Claude Desktop (internal)
-MCP Host	Claude Desktop
-API Client (HTTP)	httpx.AsyncClient inside MCP server
-❗ Why we didn’t build an MCP client yet
+1.  **FastAPI** produces the OpenAPI specification.
+2.  **FastMCP** reads that OpenAPI spec and auto-generates MCP tools/resources.
+3.  **FastMCP** runs as an MCP server communicating over stdio.
+4.  **Claude Desktop** launches the server and handles tool discovery and invocation.
 
-Because:
+## ❗ Why no custom MCP Client?
 
-Claude Desktop already is an MCP client
+We are leveraging Claude Desktop's native capabilities because it already handles:
 
-It handles:
+*   **Tool Discovery:** Finding what the server can do.
+*   **Invocation:** Calling the functions with the correct parameters.
+*   **Response Parsing:** Taking the tool output and feeding it back into the LLM context.
 
-Tool discovery
+_You would only build your own MCP host/client if you required a custom agent runtime, multi-agent orchestration outside of Claude, or a production deployment without the Claude Desktop wrapper._
 
-Invocation
+## 🚀 Getting Started
 
-Tool response parsing
-
-You would build your own MCP host/client only if:
-
-You wanted a custom agent runtime
-
-Or multi-agent orchestration outside Claude
-
-Or production deployment without Claude Desktop
-
-For now: perfect choice.
+1.  **Start the Backend:**  
+    `uvicorn app.main:app --reload`  
+    
+2.  Launch the MCP Server:  
+    Ensure your claude\_desktop\_config.json points to your
+    pizza\_mcp\_server.py.
+    
+    `python3 app/mcp/pizza_mcp_server.py`
+3.  Order Pizza:  
+    Ask Claude: "What's on the menu and can I get a large pepperoni?"
